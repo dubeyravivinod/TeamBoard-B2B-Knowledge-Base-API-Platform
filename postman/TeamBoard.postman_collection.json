@@ -1,0 +1,208 @@
+{
+  "info": {
+    "name": "TeamBoard API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "admin_access_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Register - success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('access_token', body.access);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/auth/register/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"acmecorp\",\n  \"password\": \"securepass123\",\n  \"company_name\": \"Acme Corp\",\n  \"email\": \"dev@acmecorp.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Register - duplicate username (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 400', () => pm.response.to.have.status(400));"] }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/auth/register/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"acmecorp\",\n  \"password\": \"anotherpass123\",\n  \"company_name\": \"Acme Corp 2\",\n  \"email\": \"dev2@acmecorp.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login - success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('access_token', body.access);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/auth/login/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"acmecorp\",\n  \"password\": \"securepass123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login - bad credentials (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 401', () => pm.response.to.have.status(401));"] }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/auth/login/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"acmecorp\",\n  \"password\": \"wrongpassword\"\n}"
+        }
+      }
+    },
+    {
+      "name": "KB Query - with results",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));", "pm.test('count > 0', () => pm.expect(pm.response.json().count).to.be.above(0));"] }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": "{{base_url}}/api/kb/query/",
+        "body": { "mode": "raw", "raw": "{\n  \"search\": \"select_related\"\n}" }
+      }
+    },
+    {
+      "name": "KB Query - zero results",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));", "pm.test('count is 0', () => pm.expect(pm.response.json().count).to.eql(0));"] }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": "{{base_url}}/api/kb/query/",
+        "body": { "mode": "raw", "raw": "{\n  \"search\": \"nonexistent-xyz-term\"\n}" }
+      }
+    },
+    {
+      "name": "KB Query - missing search field (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 400', () => pm.response.to.have.status(400));"] }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": "{{base_url}}/api/kb/query/",
+        "body": { "mode": "raw", "raw": "{}" }
+      }
+    },
+    {
+      "name": "KB Query - no token (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 401', () => pm.response.to.have.status(401));"] }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/kb/query/",
+        "body": { "mode": "raw", "raw": "{\n  \"search\": \"select_related\"\n}" }
+      }
+    },
+    {
+      "name": "Usage Summary - as ADMIN (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{admin_access_token}}" }],
+        "url": "{{base_url}}/api/admin/usage-summary/"
+      }
+    },
+    {
+      "name": "Usage Summary - as CLIENT (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 403', () => pm.response.to.have.status(403));"] }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "{{base_url}}/api/admin/usage-summary/"
+      }
+    },
+    {
+      "name": "Usage Summary - no token (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test('status is 401', () => pm.response.to.have.status(401));"] }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/admin/usage-summary/"
+      }
+    }
+  ]
+}
