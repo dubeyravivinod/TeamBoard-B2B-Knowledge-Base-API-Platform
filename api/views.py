@@ -1,12 +1,14 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, RegisterSerializer
+from .models import KBEntry, QueryLog
+from .serializers import KBEntrySerializer, KBQueryRequestSerializer, LoginSerializer, RegisterSerializer
 
 
 class RegisterView(APIView):
@@ -69,6 +71,37 @@ class LoginView(APIView):
                 'access': access,
                 'company_name': company.company_name,
                 'api_key': company.api_key,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class KBQueryView(APIView):
+    def post(self, request):
+        serializer = KBQueryRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        search_term = serializer.validated_data['search']
+
+        company = request.user.company
+
+        with transaction.atomic():
+            matches = list(
+                KBEntry.objects.filter(
+                    Q(question__icontains=search_term) | Q(answer__icontains=search_term)
+                )
+            )
+            count = len(matches)
+            QueryLog.objects.create(
+                company=company,
+                search_term=search_term,
+                results_count=count,
+            )
+
+        return Response(
+            {
+                'search': search_term,
+                'count': count,
+                'results': KBEntrySerializer(matches, many=True).data,
             },
             status=status.HTTP_200_OK,
         )
